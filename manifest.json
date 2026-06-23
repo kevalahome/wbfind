@@ -1,0 +1,55 @@
+{
+  "name": "WB RERA Project Finder — Kevala Home",
+  "short_name": "WB Project Finder",
+  "description": "Find RERA-verified real estate projects across West Bengal by district, type, and possession year. Interactive map. Free. Official data.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#100820",
+  "theme_color": "#1a0627",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": ["utilities", "finance", "lifestyle"],
+  "icons": [
+    {
+      "src": "KH Logo.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "KH Logo.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "KH Logo.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "WB RERA Project Finder — Search and filter RERA projects in West Bengal"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Find Active Projects",
+      "short_name": "Active",
+      "description": "Search active RERA-registered projects in West Bengal",
+      "url": "/?status=A",
+      "icons": [{ "src": "KH Logo.webp", "sizes": "192x192" }]
+    },
+    {
+      "name": "Projects in North 24 Parganas",
+      "short_name": "N24 Projects",
+      "description": "RERA projects in North 24 Parganas including New Town and Rajarhat",
+      "url": "/?district=North%2024%20Parganas&status=A",
+      "icons": [{ "src": "KH Logo.webp", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

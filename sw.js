@@ -8,7 +8,7 @@
    to receive the updated files. Format: kvl-find-vN
 ═══════════════════════════════════════════════════════════ */
 
-const CACHE_NAME = 'kvl-find-v1';
+const CACHE_NAME = 'kvl-find-v2';
 
 /* ── Files to cache immediately on install ── */
 const STATIC_ASSETS = [
@@ -82,7 +82,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // ── Static shell: cache-first ──
+  // ── Navigation (index.html): network-first so deploys reach users immediately ──
+  if (request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
+    event.respondWith(networkFirstWithCache(request));
+    return;
+  }
+
+  // ── Other static shell assets (logo, manifest): cache-first ──
   if (
     url.origin === self.location.origin ||
     STATIC_ASSETS.some(a => url.pathname === a)

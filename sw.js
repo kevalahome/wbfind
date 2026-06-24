@@ -8,7 +8,7 @@
    to receive the updated files. Format: kvl-find-vN
 ═══════════════════════════════════════════════════════════ */
 
-const CACHE_NAME = 'kvl-find-v2';
+const CACHE_NAME = 'kvl-find-v3';
 
 /* ── Files to cache immediately on install ── */
 const STATIC_ASSETS = [

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://find.kevalahome.com/sitemap.xml

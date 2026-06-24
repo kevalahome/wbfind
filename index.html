@@ -708,18 +708,9 @@ async function init() {
 }
 
 async function loadDetails() {
-  try {
-    const det = await fetch(BASE + 'projects_cleaned.json').then(r => r.json());
-    (det || []).forEach(d => {
-      const k = normaliseKey(d.rera_reg_no || '');
-      if (k) DETAILS[k] = d;
-    });
-    DETAILS_LOADED = true;
-    // Re-render visible results to pick up detail data
-    if (results.length > 0) renderList();
-  } catch(e) {
-    // Silently fail — cards still render without rich details
-  }
+  await ensureDetailsLoaded();
+  // Re-render visible results to pick up detail data (district, promoter, amenities)
+  if (results.length > 0) renderList();
 }
 
 function normaliseKey(s) {
@@ -1036,7 +1027,7 @@ function cardHTML(p) {
 /* ═══════════════════════════════════════════════
    MAP VIEW
 ═══════════════════════════════════════════════ */
-function setView(v) {
+async function setView(v) {
   currentView = v;
   document.getElementById('viewList').classList.toggle('active', v === 'list');
   document.getElementById('viewMap').classList.toggle('active', v === 'map');
@@ -1046,7 +1037,13 @@ function setView(v) {
   document.getElementById('resultsList').style.display = v === 'list' ? 'block' : 'none';
 
   if (v === 'map') {
-    renderMap();
+    // Ensure detail data is loaded before trying to extract coordinates
+    if (!DETAILS_LOADED) {
+      showToast('Loading location data…');
+      await ensureDetailsLoaded();
+    }
+    // Wait for CSS display transition to complete so container has real dimensions
+    setTimeout(() => renderMap(), 120);
   } else {
     renderList();
   }
@@ -1067,18 +1064,41 @@ function extractLatLng(p) {
   return [lat, lng];
 }
 
+/* Ensure details JSON is loaded — called before map render */
+async function ensureDetailsLoaded() {
+  if (DETAILS_LOADED) return;
+  try {
+    const det = await fetch(BASE + 'projects_cleaned.json').then(r => r.json());
+    (det || []).forEach(d => {
+      const k = normaliseKey(d.rera_reg_no || '');
+      if (k) DETAILS[k] = d;
+    });
+    DETAILS_LOADED = true;
+    // Update mapped count in stats
+    const mapped = ALL_PROJECTS.filter(p => extractLatLng(p) !== null).length;
+    document.getElementById('statMapped').textContent = mapped.toLocaleString('en-IN');
+  } catch(e) { /* silently fail */ }
+}
+
 function renderMap() {
   const container = document.getElementById('mapContainer');
   container.classList.add('show');
 
-  // Init map once
+  // Init map once — IMPORTANT: do not call setView until invalidateSize fires
   if (!mapInstance) {
-    mapInstance = L.map('map', { zoomControl: true, attributionControl: true });
+    mapInstance = L.map('map', {
+      zoomControl: true,
+      attributionControl: true,
+      // Disable fade animation to prevent tile-loading race condition
+      fadeAnimation: false,
+      markerZoomAnimation: false
+    });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 18
+      maxZoom: 18,
+      // Increase tile buffer so tiles load before user pans
+      keepBuffer: 4
     }).addTo(mapInstance);
-    mapInstance.setView([22.8, 88.0], 8);
   }
 
   // Clear old markers
@@ -1088,13 +1108,16 @@ function renderMap() {
   const mappable = results.filter(p => extractLatLng(p) !== null);
 
   if (mappable.length === 0) {
+    // Fall back to default WB view so map at least renders
+    mapInstance.invalidateSize();
+    mapInstance.setView([22.8, 88.0], 8);
     showToast('No location data for these results');
     return;
   }
 
   const bounds = [];
 
-  mappable.slice(0, 500).forEach(p => { // cap at 500 pins for performance
+  mappable.slice(0, 500).forEach(p => {
     const ll = extractLatLng(p);
     if (!ll) return;
 
@@ -1128,14 +1151,18 @@ function renderMap() {
     bounds.push(ll);
   });
 
+  // CRITICAL FIX: invalidateSize FIRST so Leaflet knows the container dimensions,
+  // then fitBounds so tiles are requested for the correct viewport.
+  mapInstance.invalidateSize({ animate: false });
   if (bounds.length > 0) {
     try {
-      mapInstance.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
-    } catch(e) {}
+      mapInstance.fitBounds(bounds, { padding: [30, 30], maxZoom: 13, animate: false });
+    } catch(e) {
+      mapInstance.setView([22.8, 88.0], 8);
+    }
   }
-
-  // Force re-render (Leaflet needs this when container was hidden)
-  setTimeout(() => mapInstance.invalidateSize(), 100);
+  // Second invalidateSize after a paint cycle catches any remaining layout shifts
+  requestAnimationFrame(() => mapInstance.invalidateSize({ animate: false }));
 }
 
 /* ═══════════════════════════════════════════════

@@ -439,7 +439,8 @@ body.light .popup-name{color:var(--text)}
 <header class="header" role="banner">
   <div class="header-inner">
     <a href="https://kevalahome.com" class="logo" title="Back to Kevala Home" aria-label="Kevala Home — Back to main site">
-      <div class="logo-mark" aria-hidden="true">KH</div>
+      <img src="KH Logo.webp" alt="Kevala Home" width="42" height="42" style="border-radius:12px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='flex'">
+      <div class="logo-mark" id="logoFallback" aria-hidden="true" style="display:none">KH</div>
       <div>
         <div class="logo-name">Kevala Home</div>
         <div class="logo-tag">WB Project Finder · ← Main Site</div>
@@ -464,7 +465,7 @@ body.light .popup-name{color:var(--text)}
         <div class="stat-item"><div class="stat-num" id="statTotal">—</div><div class="stat-label">Projects</div></div>
         <div class="stat-item"><div class="stat-num" id="statActive">—</div><div class="stat-label">Active</div></div>
         <div class="stat-item"><div class="stat-num" id="statRevoked">—</div><div class="stat-label">Revoked</div></div>
-        <div class="stat-item"><div class="stat-num" id="statMapped">—</div><div class="stat-label">On Map</div></div>
+        <div class="stat-item"><div class="stat-num">17</div><div class="stat-label">Districts</div></div>
       </div>
     </div>
 
@@ -664,19 +665,27 @@ async function init() {
   setText('Loading projects…');
 
   try {
-    const [approved, rejected] = await Promise.all([
+    // Fetch all three data files in parallel — details load with the rest,
+    // eliminating the race condition where map is clicked before details arrive
+    const [approved, rejected, detailsRaw] = await Promise.all([
       fetch(BASE + 'approved.json').then(r => r.json()),
-      fetch(BASE + 'rejected.json').then(r => r.json())
+      fetch(BASE + 'rejected.json').then(r => r.json()),
+      fetch(BASE + 'projects_cleaned.json').then(r => r.json()).catch(() => [])
     ]);
+
     ALL_PROJECTS = [...approved, ...rejected];
+
+    // Index details immediately
+    (detailsRaw || []).forEach(d => {
+      const k = normaliseKey(d.rera_reg_no || '');
+      if (k) DETAILS[k] = d;
+    });
+    DETAILS_LOADED = true;
 
     updateStats();
     buildFilterChips();
     dot('green');
-    setText('Offline‑ready · ' + ALL_PROJECTS.length.toLocaleString('en-IN') + ' projects loaded');
-
-    // Load rich details in background — don't block UI
-    loadDetails();
+    setText('Offline‑ready · ' + ALL_PROJECTS.length.toLocaleString('en-IN') + ' projects loaded · Map ready');
 
     // Handle URL params (deep link support)
     const params = new URLSearchParams(window.location.search);
@@ -1027,7 +1036,7 @@ function cardHTML(p) {
 /* ═══════════════════════════════════════════════
    MAP VIEW
 ═══════════════════════════════════════════════ */
-async function setView(v) {
+function setView(v) {
   currentView = v;
   document.getElementById('viewList').classList.toggle('active', v === 'list');
   document.getElementById('viewMap').classList.toggle('active', v === 'map');
@@ -1037,13 +1046,8 @@ async function setView(v) {
   document.getElementById('resultsList').style.display = v === 'list' ? 'block' : 'none';
 
   if (v === 'map') {
-    // Ensure detail data is loaded before trying to extract coordinates
-    if (!DETAILS_LOADED) {
-      showToast('Loading location data…');
-      await ensureDetailsLoaded();
-    }
-    // Wait for CSS display transition to complete so container has real dimensions
-    setTimeout(() => renderMap(), 120);
+    // Wait one paint cycle for the container to have real dimensions before Leaflet renders
+    setTimeout(() => renderMap(), 80);
   } else {
     renderList();
   }

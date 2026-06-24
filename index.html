@@ -757,11 +757,9 @@ function getDetail(reraNo) {
 function updateStats() {
   const active  = ALL_PROJECTS.filter(p => p.s === 'A').length;
   const revoked = ALL_PROJECTS.filter(p => p.s === 'R').length;
-  const mapped  = ALL_PROJECTS.filter(p => extractLatLng(p) !== null).length;
   document.getElementById('statTotal').textContent   = ALL_PROJECTS.length.toLocaleString('en-IN');
   document.getElementById('statActive').textContent  = active.toLocaleString('en-IN');
   document.getElementById('statRevoked').textContent = revoked.toLocaleString('en-IN');
-  document.getElementById('statMapped').textContent  = mapped.toLocaleString('en-IN');
 }
 
 /* ═══════════════════════════════════════════════
@@ -1092,9 +1090,6 @@ async function ensureDetailsLoaded() {
       if (k) DETAILS[k] = d;
     });
     DETAILS_LOADED = true;
-    // Update mapped count in stats
-    const mapped = ALL_PROJECTS.filter(p => extractLatLng(p) !== null).length;
-    document.getElementById('statMapped').textContent = mapped.toLocaleString('en-IN');
   } catch(e) { /* silently fail */ }
 }
 

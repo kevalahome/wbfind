@@ -259,7 +259,7 @@
      LEAFLET MAP — free, no API key, no billing
 ════════════════════════════════════════════════ -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLs=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
 /* ═══════════════════════════════════════════
@@ -566,7 +566,7 @@ body.light .popup-name{color:var(--text)}
       <h3>🔍 WB RERA Project Finder</h3>
       <p style="font-size:var(--fs-sm);color:var(--text3);line-height:1.7;margin-bottom:14px">Find and explore RERA-verified real estate projects across West Bengal. Filter by district, project type, and possession year. View matching projects on an interactive map. All data is sourced directly from the official WB RERA portal.</p>
       <div class="about-row"><div class="about-ico">🛡️</div><div><div class="about-title">Official Data Source</div><div class="about-sub">All 4,200+ projects sourced from rera.wb.gov.in — the same data powering Kevala Home's WB RERA Check tool.</div></div></div>
-      <div class="about-row"><div class="about-ico">🗺️</div><div><div class="about-title">Interactive Map</div><div class="about-sub">Projects with registered location data appear as pins on an interactive OpenStreetMap. No Google Maps API. No billing. No tracking.</div></div></div>
+      <div class="about-row"><div class="about-ico">🗺️</div><div><div class="about-title">Interactive Map</div><div class="about-sub">Projects with registered location data appear as pins on an interactive map.</div></div></div>
       <div class="about-row"><div class="about-ico">🆓</div><div><div class="about-title">100% Free</div><div class="about-sub">Always free for homebuyers. No login, no registration, no ads.</div></div></div>
       <div class="about-row"><div class="about-ico">📡</div><div><div class="about-title">Works Offline</div><div class="about-sub">Once loaded, the project database is cached on your device. Search without an internet connection.</div></div></div>
     </div>
@@ -656,6 +656,20 @@ let darkMode = true;
 ═══════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', init);
 
+/* Retry a fetch up to once after a short delay */
+async function fetchWithRetry(url, delayMs = 1500) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch(e) {
+    await new Promise(res => setTimeout(res, delayMs));
+    const r2 = await fetch(url);
+    if (!r2.ok) throw new Error('HTTP ' + r2.status);
+    return await r2.json();
+  }
+}
+
 async function init() {
   const saved = localStorage.getItem('kvl_theme');
   darkMode = saved !== 'light';
@@ -665,12 +679,12 @@ async function init() {
   setText('Loading projects…');
 
   try {
-    // Fetch all three data files in parallel — details load with the rest,
-    // eliminating the race condition where map is clicked before details arrive
+    // approved + rejected are critical and retried once on failure.
+    // projects_cleaned degrades gracefully if unavailable.
     const [approved, rejected, detailsRaw] = await Promise.all([
-      fetch(BASE + 'approved.json').then(r => r.json()),
-      fetch(BASE + 'rejected.json').then(r => r.json()),
-      fetch(BASE + 'projects_cleaned.json').then(r => r.json()).catch(() => [])
+      fetchWithRetry(BASE + 'approved.json'),
+      fetchWithRetry(BASE + 'rejected.json'),
+      fetch(BASE + 'projects_cleaned.json').then(r => r.ok ? r.json() : []).catch(() => [])
     ]);
 
     ALL_PROJECTS = [...approved, ...rejected];

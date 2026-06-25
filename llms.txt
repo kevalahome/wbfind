@@ -1,0 +1,90 @@
+# Kevala Home — WB RERA Project Finder
+
+> Free tool to search 4,200+ RERA-verified real estate projects across West Bengal by district, project type, possession year, and registration status. Results shown as cards and on an interactive map. No login, no ads, works offline. Official data from rera.wb.gov.in.
+
+WB RERA Project Finder by Kevala Home is a searchable, map-based directory of every RERA-registered real estate project in West Bengal. Buyers can browse verified projects by location and criteria, view them plotted on an interactive map, and access promoter details, amenities, unit counts, and RERA status — all from official WB RERA data. Useful for buyers researching areas, comparing projects, or confirming that a project they've been shown actually exists in the RERA database.
+
+## Core Function
+
+- [WB RERA Project Finder](https://find.kevalahome.com/): Search 4,200+ WB RERA registered projects. Filter by district, project type, possession year, registration status, or free-text name/RERA number search. Results display as project cards and on an interactive Leaflet map (OpenStreetMap, no API key required).
+
+## Filters
+
+- **Name / Registration Number search**: Free-text search across project name, RERA registration number, internal project ID, promoter name, and project address
+- **District**: All 17 districts of West Bengal — North 24 Parganas, Kolkata, South 24 Parganas, Howrah, Hooghly, Nadia, Purba Medinipur, Burdwan, Paschim Medinipur, Siliguri, Birbhum, Murshidabad, Malda, Jalpaiguri, Bankura, Purulia, Coochbehar
+- **Project Type**: Residential, Commercial, Mixed, Plotted
+- **Registration Status**: All, Active only, Revoked only
+- **Possession Year**: Dynamic chips built from the dataset; upcoming years shown prominently, past years shown at reduced opacity
+
+All filters are combinable. Results update on clicking "Find Projects".
+
+## Deep Link / URL Parameters
+
+Search state is reflected in the URL and can be shared or bookmarked directly:
+
+- `find.kevalahome.com/?district=North+24+Parganas` — pre-filter by district
+- `find.kevalahome.com/?type=Residential` — pre-filter by project type
+- `find.kevalahome.com/?status=A` — active projects only (`A` = active, `R` = revoked)
+- `find.kevalahome.com/?year=2026` — filter by possession year
+- `find.kevalahome.com/?q=Shapoorji` — free-text search
+- Parameters are combinable: `?district=Howrah&type=Residential&status=A`
+
+The page title updates dynamically to reflect the active filters (e.g. "RERA Projects in Howrah, Residential — WB RERA Project Finder | Kevala Home").
+
+## Project Card Information
+
+Each result card shows (where available from the dataset):
+
+- Project name and internal ID
+- RERA registration number
+- Registration status (Active / Revoked) with colour-coded badge
+- Possession / completion date
+- Promoter name and firm name
+- District
+- Project address
+- Total unit count
+- Project type
+- Amenities and facilities (up to 8, sourced from official RERA records)
+- Tags: RERA status, project type, possession year
+- "Due YYYY" warning tag for projects with upcoming possession dates
+
+## Map View
+
+Switching to Map view plots all matching projects (up to 500) as pins on an interactive OpenStreetMap via Leaflet — green pins for active, red pins for revoked. Clicking a pin opens a popup with project name, promoter, district, unit count, completion date, status, and a link to verify on the official WB RERA portal.
+
+Only projects with recorded coordinates in the RERA dataset appear on the map. Projects without location data are visible in List view only.
+
+## Actions Per Project
+
+- **Verify Official**: Opens the official WB RERA portal (rera.wb.gov.in) to confirm project status
+- **Location**: Opens the project's registered location in Google Maps (where available)
+- **Share**: Uses the Web Share API or copies to clipboard — shares project name, RERA number, and a direct link to the WB RERA Check tool pre-filled with the project name
+- **Calculate Total Cost**: Links to cost.kevalahome.com to calculate stamp duty, GST, registration fee, and all additional charges for the property
+
+## Data
+
+- Source: Official West Bengal RERA portal (rera.wb.gov.in)
+- Base dataset: `approved.json` (active projects) and `rejected.json` (revoked projects) — loaded on init with one automatic retry on failure
+- Enriched dataset: `projects_cleaned.json` — promoter name and address, project address, district, project type, total units, carpet area, amenities, facilities, Google Maps URL, source URL, RERA certificate URL, data fetch timestamp
+- Coverage: 4,200+ projects across 17 districts of West Bengal, from 2017 onwards
+- Updates: Periodically refreshed from the official portal and served via GitHub
+
+## Technical Notes
+
+Single-page PWA. The base approved/rejected datasets are fetched on load with automatic retry; the enriched details dataset loads in parallel and degrades gracefully if unavailable. District and project type filters use the enriched dataset — if it hasn't loaded, unmatched projects are included rather than excluded (fail-open). Service worker caches the app shell for offline use. No backend, no user data collected, no login required.
+
+## Related Tools
+
+- [WB RERA Check](https://wbrera.kevalahome.com/): Faster single-project lookup by name or RERA number — also shows RERA certificate PDF
+- [Total Cost Calculator](https://cost.kevalahome.com/): Calculate stamp duty, GST, registration, mutation, and all additional charges for a purchase
+- [Upcoming Projects Guide](https://kevalahome.com/upcoming-projects.html): Editorial intelligence on Kolkata's growth corridors and notable upcoming projects with sourced market data
+- [Main Site](https://kevalahome.com/): Kevala Home homepage
+- Contact: info@kevalahome.com
+
+## What This Tool Does Not Do
+
+- It does not show property prices or availability — only RERA registration data and project details
+- It does not connect to any developer or broker — read-only directory only
+- It does not cover RERA registrations outside West Bengal
+- It does not replace verification on the official WB RERA portal (rera.wb.gov.in) before any financial commitment
+- Map location data is derived from coordinates recorded at RERA registration time and may not reflect the exact plot location
